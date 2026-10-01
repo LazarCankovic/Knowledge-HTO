@@ -1,0 +1,38 @@
+# Real HTO dataset - Logistic Regression pipeline check
+
+# --- Data ---
+data_path: data/bp_patient_sequences.csv
+data_version: hto_last_hto_v1
+
+# --- Split ---
+split_dir: splits
+val_size: 0.10
+test_size: 0.10
+split_seed: 42
+
+# --- Repro ---
+seed: 42
+repo_dir: .
+
+# --- Model ---
+model_type: logistic_regression
+
+model_params:
+  C: 1.0
+  max_iter: 1000
+  ngram_range: [1, 1]
+  min_df: 1
+
+# --- Imbalance handling ---
+class_weighted: true
+
+# --- Decision threshold ---
+tune_threshold: true
+threshold_metric: f1_label1
+decision_threshold: 0.5
+
+# --- Extras ---
+save_roc_pr_curves: true
+
+# --- Experiment tracking ---
+runs_dir: runs
