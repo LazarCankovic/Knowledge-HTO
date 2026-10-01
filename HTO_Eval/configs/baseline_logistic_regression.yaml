@@ -1,0 +1,39 @@
+# Baseline run config. Copy this file per experiment (e.g.
+# configs/lstm_v1.yaml) rather than editing in place, so old configs stay
+# reproducible next to the run records that used them.
+
+# --- Data ---
+data_path: sample_data/synthetic_patients.csv   # <-- point this at your real data
+data_version: synthetic_v0                       # bump this when the dataset changes
+
+# --- Split (created once under split_dir, then reused by every future run) ---
+split_dir: splits
+val_size: 0.10
+test_size: 0.10
+
+# --- Repro ---
+seed: 42
+split_seed: 42
+repo_dir: .   # once you have a git repo, this is where train.py looks for the commit hash
+
+# --- Model (must be a key in bp_eval/models/MODEL_REGISTRY) ---
+model_type: logistic_regression
+model_params:
+  C: 1.0
+  max_iter: 1000
+  ngram_range: [1, 1]
+  min_df: 1
+
+# --- Imbalance handling ---
+class_weighted: true   # weights computed from the TRAIN split only
+
+# --- Decision threshold ---
+tune_threshold: true          # if true, sweep thresholds on the VAL set only
+threshold_metric: f1_label1   # metric to maximize when tuning
+decision_threshold: 0.5       # used only when tune_threshold is false
+
+# --- Extras ---
+save_roc_pr_curves: true
+
+# --- Experiment tracking ---
+runs_dir: runs   # each run writes runs/<experiment_id>/ + a row in runs/registry.csv

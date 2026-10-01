@@ -1,0 +1,11 @@
+# Core pipeline (required)
+pandas>=1.5
+numpy>=1.24
+scikit-learn>=1.2
+PyYAML>=6.0
+matplotlib>=3.6
+joblib>=1.2
+
+# Optional — only needed once you implement the LSTM/BERT model stubs
+# torch>=2.0
+# transformers>=4.30

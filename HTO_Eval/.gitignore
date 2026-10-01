@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+
+# Virtual environments
+.venv/
+venv/
+
+# OS / editor
+.DS_Store
+.vscode/
+
+# ==========================================
+# PRIVATE / LOCAL HTO FILES
+# ==========================================
+
+# HTO_Eval/data/ only
+/data/
+
+# HTO_Eval/splits/ only
+/splits/
+
+# HTO_Eval/runs/ only
+/runs/
+
+# Model checkpoints
+*.pt
+*.pth
+*.bin
+*.ckpt
+
+# Jupyter
+.ipynb_checkpoints/
