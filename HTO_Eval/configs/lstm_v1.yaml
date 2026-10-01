@@ -1,0 +1,46 @@
+# =========================================================
+# Real HTO LSTM Baseline
+# =========================================================
+
+# --- Data ---
+data_path: data/bp_patient_sequences.csv
+data_version: hto_last_hto_v1
+
+# --- Frozen patient split ---
+split_dir: splits
+val_size: 0.10
+test_size: 0.10
+split_seed: 42
+
+# --- Reproducibility ---
+seed: 42
+repo_dir: .
+
+# --- Model ---
+model_type: lstm
+
+model_params:
+  embedding_dim: 128
+  hidden_size: 128
+  num_layers: 1
+  max_len: 512
+  batch_size: 64
+  learning_rate: 0.001
+  epochs: 10
+  patience: 3
+  dropout: 0.2
+  weight_decay: 0.0
+
+# --- Class imbalance ---
+class_weighted: true
+
+# --- Threshold ---
+tune_threshold: true
+threshold_metric: f1_label1
+decision_threshold: 0.5
+
+# --- Evaluation ---
+save_roc_pr_curves: true
+
+# --- Tracking ---
+runs_dir: runs
