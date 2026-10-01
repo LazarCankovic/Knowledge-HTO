@@ -107,10 +107,15 @@ def load_dataset(data_path: str) -> LoadResult:
             reason = "duplicate_patient_id"
         elif len(parsed_sequences.iloc[idx]) == 0:
             reason = "empty_sequence"
-        elif pd.isna(row["label"]):
-            reason = "missing_label"
-        elif int(row["label"]) not in VALID_LABELS:
-            reason = f"invalid_label_value:{row['label']}"
+        else:
+            label = pd.to_numeric(
+            row["label"],
+            errors="coerce"
+            )
+            if pd.isna(label):
+                reason = "missing_or_invalid_label"
+            elif label not in VALID_LABELS:
+                reason = f"invalid_label_value:{row['label']}"
 
         if reason is not None:
             excluded_rows.append({"patient_id": pid, "reason": reason})
