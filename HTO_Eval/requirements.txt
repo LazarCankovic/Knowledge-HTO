@@ -7,5 +7,5 @@ matplotlib>=3.6
 joblib>=1.2
 
 # Optional — only needed once you implement the LSTM/BERT model stubs
-# torch>=2.0
+torch>=2.0
 # transformers>=4.30

@@ -1,0 +1,39 @@
+# Small synthetic test of the LSTM implementation.
+# DOES NOT touch the real MIMIC split.
+
+data_path: sample_data/synthetic_patients.csv
+data_version: synthetic_lstm_smoke
+
+# Separate temporary split!
+split_dir: tmp_lstm_splits
+
+val_size: 0.10
+test_size: 0.10
+split_seed: 42
+
+seed: 42
+repo_dir: .
+
+model_type: lstm
+
+model_params:
+  embedding_dim: 32
+  hidden_size: 32
+  num_layers: 1
+  max_len: 64
+  batch_size: 32
+  learning_rate: 0.001
+  epochs: 2
+  patience: 2
+  dropout: 0.1
+
+class_weighted: true
+
+tune_threshold: true
+threshold_metric: f1_label1
+decision_threshold: 0.5
+
+save_roc_pr_curves: false
+
+# Separate temporary output!
+runs_dir: tmp_lstm_runs

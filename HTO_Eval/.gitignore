@@ -34,3 +34,8 @@ venv/
 
 # Jupyter
 .ipynb_checkpoints/
+
+
+# Temporary LSTM smoke-test outputs
+/tmp_lstm_splits/
+/tmp_lstm_runs/

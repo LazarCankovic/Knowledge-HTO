@@ -7,7 +7,7 @@ config['model_type'] in a YAML config then selects it by that key.
 from bp_eval.models.base import BaseBPModel
 from bp_eval.models.bert_stub import BERTModel
 from bp_eval.models.logistic_regression import LogisticRegressionBaseline
-from bp_eval.models.lstm_stub import LSTMModel
+from bp_eval.models.lstm import LSTMModel
 
 MODEL_REGISTRY = {
     "logistic_regression": LogisticRegressionBaseline,
