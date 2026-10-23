@@ -1,0 +1,3 @@
+Type help() for interactive help, or help(object) for help about object.
+'help'
+Use exit() or Ctrl-D (i.e. EOF) to exit
