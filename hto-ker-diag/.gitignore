@@ -1,0 +1,66 @@
+# Secrets and credentials
+.env
+.env.*
+*.pem
+*.key
+credentials*
+secrets*
+
+# Local configuration
+.claude/
+.vscode/
+.idea/
+
+
+# Notebook may contain embedded private data in outputs
+/data_preprocessing/MIMIC.ipynb
+
+
+# Python cache and environments
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+
+# Private data
+/data/
+mimic_data/
+processed_data/
+raw_data/
+private_data/
+splits/
+
+# Generated results
+predictions/
+reports/
+logs/
+runs/
+outputs/
+explain_output/
+
+# Model files and serialized data
+*.pt
+*.pth
+*.ckpt
+*.bin
+*.pkl
+*.pickle
+*.parquet
+*.feather
+
+# HPC outputs and archives
+*.out
+*.log
+*.tar
+*.tar.gz
+*.save
+
+# Operating-system files
+.DS_Store
+
+# Backup copies of source files
+*.save*
+*.bak
+*_backup.py
+
