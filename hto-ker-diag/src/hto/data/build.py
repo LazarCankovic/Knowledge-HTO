@@ -12,6 +12,7 @@ Canonical record:
             "diag_codes": [str, ...],
             "med_codes":  [str, ...],
             "lab_num":    [(lab_key, lab_value), ...],
+            "lab_itemids": [itemid, ...],  # aligned with lab_num
             "vital_num":  [(vital_key, vital_value), ...],
           }, ...
       ],
@@ -40,7 +41,17 @@ PROCESSED_DIR = Path(__file__).resolve().parents[3] / "processed_data"
 
 
 def _load_patients() -> pd.DataFrame:
-    return pd.read_parquet(MIMIC_DIR / "final_patients_table.parquet")
+    import pyarrow.parquet as pq
+
+    # BigQuery's dbdate extension appears in the Parquet pandas metadata for
+    # outcome-date columns, even though canonical records never use them. The
+    # HPC pandas environment cannot interpret that optional dtype. Select the
+    # required columns and let Arrow convert their physical types directly.
+    table = pq.read_table(
+        MIMIC_DIR / "final_patients_table.parquet",
+        columns=["patient_id", "label", "latest_htn_med_name", "bps", "bpd", "latest_bp_time"],
+    )
+    return table.replace_schema_metadata(None).to_pandas()
 
 
 def _stratified_sample(df: pd.DataFrame, n: int, seed: int = 42) -> pd.DataFrame:
@@ -88,10 +99,20 @@ def build_canonical(
         patients = _stratified_sample(patients, n=n_patients, seed=seed)
     keep_ids = set(patients["patient_id"].astype("int64").tolist())
 
-    diag = _filter_to_patients(pd.read_parquet(MIMIC_DIR / "final_diagnoses.parquet"), keep_ids)
-    meds = _filter_to_patients(pd.read_parquet(MIMIC_DIR / "final_medications.parquet"), keep_ids)
-    labs = _filter_to_patients(pd.read_parquet(MIMIC_DIR / "final_labs.parquet"), keep_ids)
-    vit  = _filter_to_patients(pd.read_parquet(MIMIC_DIR / "final_vitals.parquet"),   keep_ids)
+    # Avoid materialising unused text and metadata columns for tens of millions
+    # of events (especially the full-cohort lab extraction).
+    diag = _filter_to_patients(pd.read_parquet(
+        MIMIC_DIR / "final_diagnoses.parquet",
+        columns=["patient_id", "visit_id", "time", "diag"]), keep_ids)
+    meds = _filter_to_patients(pd.read_parquet(
+        MIMIC_DIR / "final_medications.parquet",
+        columns=["patient_id", "visit_id", "time", "medication"]), keep_ids)
+    labs = _filter_to_patients(pd.read_parquet(
+        MIMIC_DIR / "final_labs.parquet",
+        columns=["patient_id", "visit_id", "time", "lab_key", "lab_value", "itemid"]), keep_ids)
+    vit = _filter_to_patients(pd.read_parquet(
+        MIMIC_DIR / "final_vitals.parquet",
+        columns=["patient_id", "visit_id", "time", "vital_key", "vital_value"]), keep_ids)
 
     # first-event time per patient (for day_offset)
     firsts = pd.concat([
@@ -146,7 +167,7 @@ def build_canonical(
                 vk = r["visit_key"]
                 v = visits.setdefault(vk, {"day_offset": float(r["day_offset"]),
                                           "diag_codes": [], "med_codes": [],
-                                          "lab_num": [], "vital_num": []})
+                                          "lab_num": [], "lab_itemids": [], "vital_num": []})
                 if pd.notna(r["diag"]):
                     v["diag_codes"].append(str(r["diag"]))
                 v["day_offset"] = min(v["day_offset"], float(r["day_offset"]))
@@ -157,7 +178,7 @@ def build_canonical(
                 vk = r["visit_key"]
                 v = visits.setdefault(vk, {"day_offset": float(r["day_offset"]),
                                           "diag_codes": [], "med_codes": [],
-                                          "lab_num": [], "vital_num": []})
+                                          "lab_num": [], "lab_itemids": [], "vital_num": []})
                 if pd.notna(r["medication"]):
                     v["med_codes"].append(str(r["medication"]))
                 v["day_offset"] = min(v["day_offset"], float(r["day_offset"]))
@@ -168,10 +189,11 @@ def build_canonical(
                 vk = r["visit_key"]
                 v = visits.setdefault(vk, {"day_offset": float(r["day_offset"]),
                                           "diag_codes": [], "med_codes": [],
-                                          "lab_num": [], "vital_num": []})
+                                          "lab_num": [], "lab_itemids": [], "vital_num": []})
                 val = _safe_float(r["lab_value"])
                 if val is not None and pd.notna(r["lab_key"]):
                     v["lab_num"].append((str(r["lab_key"]), val))
+                    v["lab_itemids"].append(int(r["itemid"]) if pd.notna(r["itemid"]) else None)
                 v["day_offset"] = min(v["day_offset"], float(r["day_offset"]))
 
         gv = _get_group(vit_g, pid)
@@ -180,7 +202,7 @@ def build_canonical(
                 vk = r["visit_key"]
                 v = visits.setdefault(vk, {"day_offset": float(r["day_offset"]),
                                           "diag_codes": [], "med_codes": [],
-                                          "lab_num": [], "vital_num": []})
+                                          "lab_num": [], "lab_itemids": [], "vital_num": []})
                 val = _safe_float(r["vital_value_num"])
                 if val is not None and pd.notna(r["vital_key"]):
                     v["vital_num"].append((str(r["vital_key"]), val))

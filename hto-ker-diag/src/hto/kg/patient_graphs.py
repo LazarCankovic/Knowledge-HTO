@@ -36,8 +36,9 @@ class PatientGraphConfig:
 
 
 class GlobalGraphIndex:
-    def __init__(self, graph: dict):
+    def __init__(self, graph: dict, code_kind: str = "icd"):
         ent = graph["entities"]
+        self.code_kind = code_kind
         self.key_to_id = dict(zip(ent["key"], ent["id"]))
         self.kind = dict(zip(ent["id"], ent["kind"]))
         rel = graph["relations"]
@@ -60,7 +61,9 @@ class GlobalGraphIndex:
         for d in range(1, depth + 1):
             nxt = []
             for u in frontier:
-                if u != src and self.kind[u] == "icd":
+                # An unobserved code from another tower must never become a
+                # shortcut through the global graph.
+                if u != src and self.kind[u] in {"icd", "lab"}:
                     continue
                 for r, v in self.neighbors[u]:
                     if v not in out:
@@ -72,7 +75,7 @@ class GlobalGraphIndex:
 
 
 def build_patient_graph(codes_times: dict[str, np.ndarray], g: GlobalGraphIndex,
-                        cfg: PatientGraphConfig) -> dict:
+                        cfg: PatientGraphConfig, path_time_priority: bool = False) -> dict:
     """codes_times: diag key -> array of observation times in days."""
     observed = {k: t for k, t in codes_times.items() if k in g.key_to_id}
     # most recently observed codes first, capped
@@ -97,7 +100,7 @@ def build_patient_graph(codes_times: dict[str, np.ndarray], g: GlobalGraphIndex,
     reach: dict[int, list[tuple[int, int]]] = defaultdict(list)
     for s in ids:
         for m, (d, _) in g.ball(s).items():
-            if g.kind[m] == "icd" and m not in observed_ids:
+            if g.kind[m] in {"icd", "lab"} and m not in observed_ids:
                 continue
             reach[m].append((s, d))
     candidates: dict[tuple[int, int], list[tuple[int, int]]] = defaultdict(list)
@@ -125,7 +128,13 @@ def build_patient_graph(codes_times: dict[str, np.ndarray], g: GlobalGraphIndex,
         keep = sorted(path_edges, key=lambda k: (path_len[k], k))[: cfg.max_edges_per_patient]
         path_edges = {k: path_edges[k] for k in keep}
     for (u, r, v), tau in path_edges.items():
-        add(u, r, v, tau)
+        # In a shallow metadata graph, a path edge is often also a code's
+        # one-hop knowledge edge. The default diagnosis behaviour keeps 0;
+        # labs retain the observed pair gap so temporal attention can use it.
+        if path_time_priority:
+            edges[(u, r, v)] = tau
+        else:
+            add(u, r, v, tau)
     path_taus = np.asarray(list(path_edges.values()), dtype=np.float32)
 
     # 3. both directions, local indexing
@@ -145,20 +154,24 @@ def build_patient_graph(codes_times: dict[str, np.ndarray], g: GlobalGraphIndex,
         "edge_tau": np.asarray([both[t] for t in triples], dtype=np.float32),
         "code_index": {k: local[g.key_to_id[k]] for k in keys},
         "n_pairs_connected": len(candidates),
+        "n_cross_domain_pairs_connected": sum(g.kind[s] != g.kind[t] for s, t in candidates),
         "path_taus": path_taus,     # forward path edges only (for stats)
     }
 
 
-def build_all(diagnoses: pd.DataFrame, graph: dict, cfg: PatientGraphConfig = PatientGraphConfig()) -> tuple[dict, dict]:
-    """diagnoses: final_diagnoses.parquet rows (patient_id, time, diag). Returns ({patient_id: graph}, stats)."""
-    g = GlobalGraphIndex(graph)
-    df = diagnoses[["patient_id", "time", "diag"]].dropna()
+def build_all(diagnoses: pd.DataFrame, graph: dict, cfg: PatientGraphConfig = PatientGraphConfig(),
+              code_col: str = "diag", code_kind: str = "icd",
+              path_time_priority: bool = False) -> tuple[dict, dict]:
+    """Build patient graphs from (patient_id, time, code_col) observations."""
+    g = GlobalGraphIndex(graph, code_kind=code_kind)
+    df = diagnoses[["patient_id", "time", code_col]].dropna()
     # unit-safe (parquet timestamps can come back as us or ns resolution)
     df = df.assign(day=(pd.to_datetime(df["time"]) - pd.Timestamp(0)) / pd.Timedelta(days=1))
     out = {}
     for pid, grp in df.groupby("patient_id"):
-        codes_times = {k: v.to_numpy() for k, v in grp.groupby("diag")["day"]}
-        out[int(pid)] = build_patient_graph(codes_times, g, cfg)
+        codes_times = {k: v.to_numpy() for k, v in grp.groupby(code_col)["day"]}
+        out[int(pid)] = build_patient_graph(codes_times, g, cfg,
+                                            path_time_priority=path_time_priority)
 
     n_obs = np.array([len(p["code_index"]) for p in out.values()])
     n_edges = np.array([len(p["edge_rel"]) for p in out.values()])
@@ -168,9 +181,14 @@ def build_all(diagnoses: pd.DataFrame, graph: dict, cfg: PatientGraphConfig = Pa
     pct = lambda a: {q: round(float(np.percentile(a, q)), 1) for q in (10, 50, 90, 99)} if len(a) else {}
     stats = {
         "config": asdict(cfg),
-        "patients_with_diagnoses": int(df["patient_id"].nunique()),
+        "path_time_priority": path_time_priority,
+        ({"icd": "patients_with_diagnoses", "lab": "patients_with_labs"}
+         .get(code_kind, "patients_with_events")):
+            int(df["patient_id"].nunique()),
         "patients_with_graph_code": int((n_obs > 0).sum()),
         "patients_with_cross_code_path": int(sum(p["n_pairs_connected"] > 0 for p in out.values())),
+        "patients_with_lab_diagnosis_path": int(sum(
+            p["n_cross_domain_pairs_connected"] > 0 for p in out.values())),
         "observed_codes_per_patient": pct(n_obs),
         "nodes_per_patient": pct(n_nodes),
         "edges_per_patient": pct(n_edges),

@@ -24,6 +24,7 @@ from .models.htr_former import HTRFormer
 from .models.a1_time_former import A1TimeFormer
 from .models.htr_former_cross_attn import HTRFormerCrossAttn
 from .models.htr_former_kg import HTRFormerKG
+from .models.htr_former_lab_kg import HTRFormerLabKG
 from .models.a2_no_time_former import A2NoTimeFormer
 from .models.time2vec_md import Time2Vec_MD
 
@@ -62,6 +63,8 @@ REGISTRY: dict[str, Entry] = {
                lambda v, x: HTRFormerCrossAttn(v, **x)),
     "htr_former_kg": Entry("htr_former_kg", "allcodes_timeaware", HTRFormerKG,
                lambda v, x: HTRFormerKG(v, **x)),
+    "htr_former_lab_kg": Entry("htr_former_lab_kg", "allcodes_timeaware", HTRFormerLabKG,
+               lambda v, x: HTRFormerLabKG(v, **x)),
     "a1_time":    Entry("a1_time",    "allcodes_timeaware", A1TimeFormer,    lambda v, x: A1TimeFormer(v, **x)),
     "a2_no_time": Entry("a2_no_time", "allcodes_timeaware", A2NoTimeFormer, lambda v, x: A2NoTimeFormer(v, **x)),
     "mtan":    Entry("mtan",    "multidomain_visit", MTAN,    lambda v, x: MTAN(v, **x)),

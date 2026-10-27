@@ -390,6 +390,11 @@ def make_multidomain_visit(
             diag_raw    = [str(c) for c in v["diag_codes"]][:max_per_domain]
             med_tokens  = [vocab.encode([_med_token(m)])[0]  for m in v["med_codes"]][:max_per_domain]
             lab_pairs   = [(vocab.encode([_lab_bin_token(k, val)])[0], float(val)) for (k, val) in v["lab_num"]][:max_per_domain]
+            itemids = v.get("lab_itemids", [None] * len(v["lab_num"]))
+            if len(itemids) != len(v["lab_num"]):
+                raise ValueError("lab_itemids must align with lab_num in each canonical visit")
+            lab_raw = [f"lab:{int(itemid)}" if itemid is not None else None
+                       for itemid in itemids[:max_per_domain]]
             vit_pairs   = [(vocab.encode([_vital_bin_token(k, val)])[0], float(val)) for (k, val) in v["vital_num"]][:max_per_domain]
 
             blocks = {"diag": [], "med": [], "lab": [], "vital": []}
@@ -430,7 +435,7 @@ def make_multidomain_visit(
                 "delta_prev_days": delta,
                 "blocks": blocks,
                 "block_numeric": block_num,
-                "blocks_raw": {"diag": diag_raw},
+                "blocks_raw": {"diag": diag_raw, "lab": lab_raw},
             })
 
         # truncate flat to max_flat_len (keep most recent events)
@@ -453,7 +458,7 @@ def make_multidomain_visit(
             visits = [{"day_offset": 0.0, "delta_prev_days": 0.0,
                        "blocks": {"diag": [], "med": [], "lab": [], "vital": []},
                        "block_numeric": {"lab": [], "vital": []},
-                       "blocks_raw": {"diag": []}}]
+                       "blocks_raw": {"diag": [], "lab": []}}]
 
         target_med_token = _med_token(rec["target_med"]) if rec.get("target_med") else None
         target_id = vocab.token_to_id.get(target_med_token, vocab.token_to_id[UNK]) if target_med_token else vocab.token_to_id[UNK]

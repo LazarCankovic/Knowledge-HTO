@@ -1,0 +1,83 @@
+Source directory: /fs/atipa/data/nsf-jg/hto/hto2/Knowledge-HTO-lab/hto-ker-diag
+Git HEAD: 04363284b110ff3675a57b5d4e23c9e83bb35ce9
+Git branch: lab-tower-mods
+Git status (including untracked source):
+M README.md
+ M build_data.py
+ M extraction/MIMIC_IV_Extraction.ipynb
+ M src/hto/data/build.py
+ M src/hto/data/variants.py
+ M src/hto/kg/patient_graphs.py
+ M src/hto/kg/transr.py
+ M src/hto/registry.py
+?? build_lab_kg.py
+?? build_lab_patient_graphs.py
+?? extraction/export_from_bigquery.py
+?? poster_evidence/
+?? src/hto/kg/lab_graph.py
+?? src/hto/kg/lab_snomed_graph.py
+?? src/hto/models/htr_former_lab_kg.py
+?? tests/test_lab_kg.py
+?? tests/test_lab_snomed_graph.py
+?? ../lab-data-build-memory.patch
+?? ../patient-dbdate-read.patch
+?? ../transr-eval-batch.patch
+SHA256 of source files present when evidence was collected:
+85337f200d922f9cde71688ddfa71d498d2ffd77871a10c0ddeec4697cff33cf  build_data.py
+417635143cc13c461d89e02d9494571b2d9aa1130b3506455c1a73eaf46a3e7f  build_kg.py
+f944cb0fc46d130c24989bb263173a0995a12f6ccb75d733a559f0d325210dda  build_lab_kg.py
+d0a7fceeb666cba0226d7dd33caa89e19876a922563397d001c95e7a2b21aaf1  build_lab_patient_graphs.py
+5abe07ff36a0175f28cbec905d1243e1cf93f08507eb508ac8f25dca5df81dc6  build_patient_graphs.py
+59bc96e4759b63c62004427ebc511d49db2b103173419b74871106df2b2b14ff  build_report.py
+6ae50f25544d1535d628b9a4f41a8617ee1f0408613d346b781d48556889b2bc  cv_compare.py
+5a8bb3c207bb8a7dfe77ce7d79e5af92ef4f7ca6ec4a3530c376b12d23239c3d  extraction/export_from_bigquery.py
+2beefd45692cdcab752fcc945922fb8e36db729952f181e98279f17ae2406132  extraction/run_extraction.py
+5d07725fce7a538787688cc3b16da692165b44b2380eb6841456055657f77898  poster_evidence/collect.py
+eda450919263430c8342103f44f15b024162d2f2319f707810c19e2965a6c09f  run.py
+e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  src/hto/__init__.py
+374931a4af33863b4e4236b6e7d583496483b8df4d3e9620201d1dc5355c1ff2  src/hto/build_allcodes_vocab.py
+e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  src/hto/eval/__init__.py
+5a9f088f121abc59bc1f09e423af126040a711ebcd94f9377af8f39fce359723  src/hto/eval/metrics.py
+e4bbb2ef4c2f6f31072218a0657942c1685c125691c1c18555fd437a0f1f1aa0  src/hto/kg/__init__.py
+2401ef24af380a145af0bd7a2bc83b5556b48238002852fdae6b45aa52802459  src/hto/kg/icd_snomed_map.py
+84a914fe70e194f6a0dd6ed8b1e737e7732cc82914b962b92a6a47322db8d635  src/hto/kg/lab_graph.py
+7c16f121e2918792b7ac1c5e1d526fcabc012b1a840f7a28638395050d680f50  src/hto/kg/lab_snomed_graph.py
+3ad25320acb3c36f6cd57a2ae0f514cd3048dc8dcc2a091f933f00fe5084c9e4  src/hto/kg/patient_graphs.py
+069fbb3e1cad00d355d513ef0b99bf9b5785e83c10a629879ac73d9fbd0a0534  src/hto/kg/snomed_graph.py
+1ea1364801bd0d29b094d3fa1e1f332fc1e8ae8f4d43f82fde8de94474ba62ba  src/hto/kg/transr.py
+e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  src/hto/models/__init__.py
+e1f3e5da2076d74b8081e69b7bc26c8443993f791da6c05db5eee31f453892cc  src/hto/models/a1_time_former.py
+029673fa92895ed309cad4bdf4e97954e32469e7545779b7be43d2be06b203ce  src/hto/models/a2_no_time_former.py
+17a832b3fc7fcadea5a7ea283a028e195c31331be6d5bd3cd7c2d8fdb0684a07  src/hto/models/behrt.py
+9de9a5c341db398b095a73645d7b3e40d4fe9549999d5920a731c95d5ef7913c  src/hto/models/behrt_md.py
+b2c561c09da681d2d1ca416a2dbd6e7e92dcdb8e6319cabde6bee3e5a42a4a37  src/hto/models/cehrbert.py
+5084f6f95d8c446438b731f03302ce0c7e86220d3a22d2b602bbbfd749f0fa75  src/hto/models/cehrbert_md.py
+db6172303273f2ba0af97f3a2254d8681ed77c0cf912fc148a1793c45d904c06  src/hto/models/common.py
+3e20ccaed6405d401b9e080c25efbbbe8816d9d5b4fff7bab42d5e9fa7199616  src/hto/models/composite_pe.py
+94e192d2e9f2b16cd2df9a941d9aa841d7590669b425458e4ec2cd9b83f7c41e  src/hto/models/four_towers_no_time.py
+4177345ecdeac0bbe2d3c9c12ac1e0ef5fedf9188e005ae8a613bcd6fa6084ec  src/hto/models/four_towers_timeaware_all_codes.py
+d1fa5d7b7d5b64e31050032d624a39f06cf07668eecb199d6f9e8fbbbfd4feea  src/hto/models/four_towers_timeaware_all_codes_cross_attn.py
+b7b26d81e33c48392d28d38b8388663b7b92033d5c88b17f7c1c95f72292bab1  src/hto/models/htr_former.py
+0548cd8eed17a1bae0de7c00c0a1a4783309f0b316967b85359b052424d87f29  src/hto/models/htr_former_cross_attn.py
+f931693c0e6dda31ab352dbe320914172c6da624eb977133c76ceb481d47fa3c  src/hto/models/htr_former_kg.py
+90c5985f3489197fc39ff555b4c166c7cd021187609c041356f32c0d969a7bce  src/hto/models/htr_former_lab_kg.py
+81f9c905ffdd3126b86686b3bb64e6eecf3de32fccb9a00f471be045fc6ec86a  src/hto/models/kg_code_embedding.py
+0c7c10962efb1de5dc571bb27a130bf6c74e7a0836ef3b4186b4fa33706f9c50  src/hto/models/md_backbone.py
+106b750ee814d00e45d88fd4aba4ec8cc68cab0491fafe9d2cada22663cfa6cb  src/hto/models/md_hier.py
+2748b971f34cdd1c6625b3ccc4e8a73a4b5e8c0d4826a0e458bde5476539c7a1  src/hto/models/medbert.py
+7ddb90201a9de6b63e9ef6e941b2ce177c45eae8b5569979949f58c74aa447b4  src/hto/models/medbert_md.py
+b0fa122c4976b57e7183bbcbd5f8ad9d9f68c0b70110f108780a1b7905ec3ee3  src/hto/models/mtan.py
+b57764f642dc2d072886e01bc7f239408b5aafd09b05f5a02afebd3d4f058252  src/hto/models/multidomain_batcher.py
+0802e108d9c6732a2d4a159584a0397d58c5e9c0577fd876cfaac237c789276e  src/hto/models/multimodal_behrt.py
+30e5514dc081bf9bd2c76f429699380f541233e3ace13fe922b8fc426ea426c5  src/hto/models/single_tower_timeaware.py
+d6aebb5de9aa3d2a963960208bb38b1bd0fd94341f69ddef068d5564e8bbb193  src/hto/models/strats.py
+8b9d904ed9f6782dbc1ec1d2893868d94356aad2d98b99da74d168f5185b4c69  src/hto/models/time2vec.py
+40fc752aa441cb385abecc6d9cc3a414ae71bbe6eaa7473c426a110adef562a7  src/hto/models/time2vec_md.py
+d315b4d93504a3a1cf9387f40eabc28a00b904134d3e89cfa4a3ed7b34da415b  src/hto/models/tlstm.py
+db99a532cd6c2e6a5e2c546a47bc005e1ba97566bf52e9c8e68c7ea1754bf54d  src/hto/models/transformehr.py
+5a9559f8db9d9cda54afebba417bdb490b33d91646758eb597c91628f2b7ddf3  src/hto/registry.py
+b2bbce775fcc83db3b11027a314df2397e9d38d43143694aed52b92e77329286  src/hto/train.py
+58900b6e876e5cb1cb22377e26748a62743e344dc2ef3134c772d95bf3eec31f  tests/test_kg.py
+202da93dddd2837e4c5a746428edb3f01b478579ee44c8bda687263ffde81889  tests/test_lab_kg.py
+256ca70a32326ed094a05baac4ae85d655d2965b7d0751ae8e71d8a7b0ae9b02  tests/test_lab_snomed_graph.py
+5b8c3fa98d35f76b1b56e89efaba541777b5423f600660fc1baed03047d48a3d  requirements.txt

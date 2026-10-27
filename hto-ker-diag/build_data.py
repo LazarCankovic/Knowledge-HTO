@@ -72,6 +72,8 @@ def main() -> None:
                     help="Max events per domain per visit in multidomain_visit.")
     ap.add_argument("--skip-text", action="store_true",
                     help="Skip text_sequence variant (it is large and optional).")
+    ap.add_argument("--only-allcodes", action="store_true",
+                    help="Build only allcodes_timeaware, the dataset used by htr_former_ca and the lab KG model.")
     ap.add_argument("--mimic-dir", type=str, default=None,
                     help="Folder with the final_*.parquet files. Default: mimic_data/ next to this script.")
     ap.add_argument("--split-csv", type=str, default=None,
@@ -93,6 +95,9 @@ def main() -> None:
     if args.reuse_canonical and canonical_path.exists():
         print(f"[canonical] reusing {canonical_path}")
         records = load_canonical(canonical_path)
+        if any(v.get("lab_num") and "lab_itemids" not in v
+               for rec in records for v in rec["visits"]):
+            raise SystemExit("Cached canonical records lack lab_itemids; rebuild without --reuse-canonical")
     else:
         print(f"[canonical] building -> {canonical_path}")
         records = build_canonical(n_patients=args.n_patients, out_path=canonical_path, seed=args.seed)
@@ -120,6 +125,29 @@ def main() -> None:
     print(f"[split] train={len(train_records)} val={len(val_records)} test={len(test_records)}")
 
     # 3. variants
+
+    if args.only_allcodes:
+        print("[variant] allcodes_timeaware")
+        md_train, md_vocab = make_multidomain_visit(
+            train_records, vocab=None, max_visits=args.max_visits,
+            max_per_domain=args.max_md_per_domain, max_flat_len=args.max_md_flat_len,
+        )
+        md_val, _ = make_multidomain_visit(
+            val_records, vocab=md_vocab, max_visits=args.max_visits,
+            max_per_domain=args.max_md_per_domain, max_flat_len=args.max_md_flat_len,
+        )
+        md_test, _ = make_multidomain_visit(
+            test_records, vocab=md_vocab, max_visits=args.max_visits,
+            max_per_domain=args.max_md_per_domain, max_flat_len=args.max_md_flat_len,
+        )
+        ac_vocab = Vocab(extend_vocab(md_train, md_vocab.id_to_token))
+        save_variant(out_dir / "allcodes_timeaware.train.pkl", md_train)
+        save_variant(out_dir / "allcodes_timeaware.val.pkl", md_val)
+        save_variant(out_dir / "allcodes_timeaware.test.pkl", md_test)
+        ac_vocab.save(out_dir / "allcodes_timeaware.vocab.json")
+        print(f"  vocab={len(ac_vocab)}")
+        print(f"\nDone. Outputs in {out_dir}/")
+        return
 
     print("[variant] codes_visit")
     cv_train, cv_vocab = make_codes_visit(

@@ -1,0 +1,19 @@
+run_id,experiment_id,kind,model,dataset,kg_tag,seed,status,exit_code,result_path,log_path,notes
+96632,E1,graph_build,diagnosis_and_lab,full_storetime,lab_snomed,,COMPLETED,0,processed_data/kg/lab_snomed/graph_stats.json,logs/hto-graphs-96632.out,Diagnosis graph and lab SNOMED extension built successfully
+96634,E1,graph_pretrain,TransR,full_storetime,lab_snomed,42,COMPLETED,0,processed_data/kg/lab_snomed/transr.pt,logs/lab-transr-96634.out,Lab graph pretrained; held-out hits@10 0.929 is a graph-link diagnostic not outcome AUROC
+96636,E1,data_build,allcodes_timeaware,full_storetime,,42,FAILED,1,,logs/hto-data-96636.out,PyArrow to pandas dbdate dtype error in final_patients_table
+96644,E1,data_build,allcodes_timeaware,full_storetime,,42,COMPLETED,0,processed_data/full_storetime/allcodes_timeaware.train.pkl,logs/hto-data-96644.out,Rebuilt after dbdate read fix; train 26855 val 5755 test 5754
+96637,E1,patient_graph,lab_snomed,full_storetime,lab_snomed,,CANCELLED,,,,DependencyNeverSatisfied after failed data build
+96669,E1,patient_graph,lab_snomed,full_storetime,lab_snomed,,COMPLETED,0,processed_data/full_storetime/patient_graphs.lab_snomed.pkl,logs/lab-patient-graphs-96669.out,6958 patients with lab-diagnosis path; lab-row SNOMED coverage 0.914966
+96727,E1,preflight,htr_former_lab_kg,full_storetime,lab_snomed,42,COMPLETED,0,predictions/full_storetime/htr_former_lab_kg_preflight/metrics.json,logs/lab-kg-preflight-96727.out,Only two train/eval batches; not a performance estimate
+96730,E3,model,htr_former_lab_kg,full_storetime,lab_snomed,42,COMPLETED,0,predictions/full_storetime/htr_former_lab_kg/metrics.json,logs/lab-kg-full-96730.out,Default gated lab KG; best epoch 4
+96731,E1,model,htr_former_ca,full_storetime,,42,COMPLETED,0,predictions/full_storetime/htr_former_ca/metrics.json,logs/ca-storetime-96731.out,Plain four-tower cross-attention reference; best epoch 3
+96819,E2,patient_graph,full,full_storetime,full,,COMPLETED,0,processed_data/full_storetime/patient_graphs.full.pkl,logs/diag-patient-graphs-96819.out,Diagnosis graph build
+96820,E2,graph_pretrain,TransR,full_storetime,full,,CANCELLED,,,,Superseded by 96822 after malformed shell command
+96822,E2,graph_pretrain,TransR,full_storetime,full,,CANCELLED,,,,Pinned cs001 unavailable; replaced with unpinned 96824
+96824,E2,graph_pretrain,TransR,full_storetime,full,42,COMPLETED,0,processed_data/kg/full/transr.pt,logs/diag-transr-96824.out,Graph-link hits@10 0.917
+96827,E2,preflight,htr_former_kg,full_storetime,full,42,COMPLETED,0,predictions/full_storetime/htr_former_kg_preflight/metrics.json,logs/diag-kg-preflight-96827.out,Only two train/eval batches; not a performance estimate
+96828,E1,model,htr_former_lab_kg_add_s42,full_storetime,lab_snomed,42,COMPLETED,0,predictions/full_storetime/htr_former_lab_kg_add_s42/metrics.json,logs/lab-add-s42-96828.out,Additive lab KG; best epoch 5
+96829,E2,model,htr_former_kg,full_storetime,full,42,COMPLETED,0,predictions/full_storetime/htr_former_kg/metrics.json,logs/diag-kg-full-96829.out,Diagnosis gated KG; best epoch 3
+96079,,historical_interactive,htr_former_ca,full,,42,FAILED,0:9,,,Interactive shell disconnected during training; no completed metrics from this attempt
+96183,,historical_model,htr_former_ca,full,,42,COMPLETED,0,../hto-past/predictions/full/htr_former_ca/metrics.json,../hto-past/logs/htr-former-ca-96183.out,Older cohort and vocabulary; AUROC 0.7924 is not comparable to full_storetime

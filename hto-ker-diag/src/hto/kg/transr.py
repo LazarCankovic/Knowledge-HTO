@@ -56,18 +56,25 @@ class TransR(nn.Module):
 
 
 @torch.no_grad()
-def hits_at_10(model: TransR, triples: torch.Tensor, n_entities: int, n_candidates: int = 100) -> float:
+def hits_at_10(model: TransR, triples: torch.Tensor, n_entities: int,
+               n_candidates: int = 100, batch_size: int = 64) -> float:
     """Share of held-out triples whose true tail ranks in the top 10 of itself + random candidates."""
     if len(triples) == 0:
         return float("nan")
     gen = torch.Generator().manual_seed(0)
-    h, r, t = triples[:, 0], triples[:, 1], triples[:, 2]
-    cand = torch.randint(1, n_entities + 1, (len(triples), n_candidates - 1), generator=gen).to(h.device)
-    true_score = model.score(h, r, t)
-    k = cand.shape[1]
-    cand_score = model.score(h.repeat_interleave(k), r.repeat_interleave(k), cand.reshape(-1)).view(-1, k)
-    rank = 1 + (cand_score < true_score.unsqueeze(1)).sum(1)
-    return float((rank <= 10).float().mean())
+    # Indexing W_R for every held-out triple and 99 tails in one call can
+    # allocate tens of GB even when the graph itself fits comfortably on GPU.
+    hits = 0
+    for start in range(0, len(triples), batch_size):
+        h, r, t = triples[start:start + batch_size].unbind(dim=1)
+        k = n_candidates - 1
+        cand = torch.randint(1, n_entities + 1, (len(h), k), generator=gen).to(h.device)
+        true_score = model.score(h, r, t)
+        cand_score = model.score(h.repeat_interleave(k), r.repeat_interleave(k),
+                                 cand.reshape(-1)).view(-1, k)
+        rank = 1 + (cand_score < true_score.unsqueeze(1)).sum(1)
+        hits += int((rank <= 10).sum().item())
+    return hits / len(triples)
 
 
 def pretrain_transr(graph: dict, cfg: TransRConfig, out_path: Path) -> dict:

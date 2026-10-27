@@ -1,10 +1,11 @@
-# hto-ker-diag: HTR-Former with a knowledge-graph diagnosis tower
+# hto-ker-diag: HTR-Former with knowledge-graph diagnosis and lab towers
 
 This folder predicts **hypertension therapy response** on MIMIC-IV: whether a patient's blood pressure is controlled (median SBP < 120 and DBP < 80) in the 90 days after their last antihypertensive prescription. It's a copy of `hto-past` (HTR-Former plus 16 baselines) with three additions:
 
 1. **A local extraction pipeline** (`extraction/`). It rebuilds the cohort from the original Colab/BigQuery notebook, using DuckDB on the PhysioNet CSVs, with timestamps and leakage checks.
 2. **A SNOMED CT knowledge graph** (`build_kg.py`, `build_patient_graphs.py`). It's built from ICD codes, and each patient gets a time-aware graph over their own diagnoses, following KerPrint (Yang et al., AAAI-23).
-3. **`htr_former_kg`**, an HTR-Former whose diagnosis embeddings are fused with that graph through a learned gate. Every other baseline is unchanged.
+3. **`htr_former_kg`**, an HTR-Former whose diagnosis embeddings are fused with that graph through a learned gate.
+4. **`htr_former_lab_kg`**, a separate model that enriches only the lab tower using a graph joined to the diagnosis SNOMED CT graph through LOINC. The diagnosis, medication and vital towers remain the usual HTR-Former towers.
 
 `hto-past/` stays as the untouched reference.
 
@@ -33,7 +34,7 @@ MIMIC-IV CSVs ──► extraction/run_extraction.py ──► data/processed/<d
 cd Knowledge-HTO/hto-ker-diag
 python3.12 -m venv .venv && .venv/bin/pip install -r requirements.txt
 source .venv/bin/activate
-python -m pytest tests/test_kg.py -q        # 15 tests, about 5 s, no data needed (one test uses the demo build if present)
+python -m pytest tests/test_kg.py tests/test_lab_kg.py -q
 ```
 
 **External inputs.** None of these go in git; all of them are covered by `.gitignore`.
@@ -44,6 +45,9 @@ python -m pytest tests/test_kg.py -q        # 15 tests, about 5 s, no data neede
 | MIMIC-IV demo 2.2 (100 patients, public) | `wget -r -N -c -np https://physionet.org/files/mimic-iv-demo/2.2/` | development |
 | SNOMED CT US Edition (RF2) | NLM, free in the US with a UMLS account | `build_kg.py` |
 | CMS 2018 diagnosis GEMs (ICD-9 → ICD-10) | `https://www.cms.gov/medicare/coding/icd10/downloads/2018-icd-10-cm-general-equivalence-mappings.zip`, unzipped into `data/external/cms-gems-2018/unzipped/` | `build_kg.py` |
+| MIMIC-IV `d_labitems` | Export from BigQuery with `extraction/export_from_bigquery.py` or use the matching raw CSV | `build_lab_kg.py` |
+| MIMIC item-to-LOINC map | MIT-LCP `mimic-code/mimic-iv/mapping/d_labitems_to_loinc.csv` | `build_lab_kg.py` |
+| LOINC Ontology RF2 | Compatible LOINC Ontology release | `build_lab_kg.py` |
 
 ## Running it
 
@@ -80,6 +84,39 @@ python run.py --baseline htr_former_ca --dataset full --epochs 10 --device cuda
 python build_report.py --root predictions --out reports/summary.md
 ```
 
+### Lab knowledge-graph tower
+
+Regenerate the event files: lab `time` now uses `storetime`, when the result was available, rather than the earlier `charttime`. Rows without `storetime` are omitted. If your source is BigQuery, use `extraction/export_from_bigquery.py` as described below. Build a *new* processed tag with the same split CSV; do not use `--reuse-canonical` from an older run, because it lacks aligned lab `itemid` values. Rerun the plain `htr_former_ca` baseline on this same new tag for a comparable result. A result on the older charttime-based dataset is not directly comparable.
+
+```bash
+DS=mimic-iv-3.1
+P=data/processed/$DS
+python extraction/run_extraction.py --raw-dir /path/to/physionet.org/files/mimiciv/3.1 --dataset $DS
+python build_data.py --tag full_storetime --skip-text \
+  --mimic-dir $P/mimic_data --split-csv $P/tables/splits.csv
+
+python build_lab_kg.py all --tag lab_snomed --diagnosis-kg-tag full \
+  --labitems $P/tables/d_labitems.csv \
+  --loinc-map /path/to/mimic-code/mimic-iv/mapping/d_labitems_to_loinc.csv \
+  --snomed-dir /path/to/SNOMED_US_release \
+  --loinc-extension-dir /path/to/compatible_LOINC_Ontology_RF2
+python build_lab_patient_graphs.py --dataset full_storetime --kg-tag lab_snomed \
+  --mimic-dir $P/mimic_data
+
+python run.py --baseline htr_former_lab_kg --dataset full_storetime \
+  --kg-tag lab_snomed --epochs 1 --batch-size 32 --device cuda \
+  --max-train-batches 2 --max-eval-batches 2 --run-suffix preflight
+
+python run.py --baseline htr_former_ca --dataset full_storetime \
+  --epochs 20 --batch-size 32 --device cuda
+python run.py --baseline htr_former_lab_kg --dataset full_storetime \
+  --kg-tag lab_snomed --epochs 20 --batch-size 32 --device cuda
+```
+
+The lab graph copies the diagnosis graph and adds `itemid → LOINC → SNOMED CT` links. MIMIC-IV 3.1 `d_labitems` does **not** contain `loinc_code`; download MIT-LCP's `mimic-iv/mapping/d_labitems_to_loinc.csv` or supply a reviewed `itemid,loinc_code` CSV. The script filters the repository file to LOINC mappings. The official LOINC Ontology RF2 Identifier file resolves each LOINC code to its active SNOMED CT concept. Its relationships and the compatible SNOMED release provide shared concept nodes; lab metadata links remain available. Obtain the matching LOINC Ontology release and check its compatibility with the SNOMED release used for the diagnosis graph. The script never guesses a LOINC code from a lab label.
+
+Patient graphs contain each patient's observed lab item IDs **and diagnoses** and use the joined global graph. They contain no outcomes or measurements; the lab value is still represented by the model's value-bin token. Read `processed_data/kg/lab_snomed/graph_stats.json` for the count of linked lab items and SNOMED concepts shared with the diagnosis graph. Read `processed_data/full_storetime/patient_graphs.lab_snomed.stats.json` for `lab_row_snomed_coverage` and `patients_with_lab_diagnosis_path`. If the latter is zero, the global graph has links to SNOMED but no observed cross-domain paths under the local graph's four-hop limit. The patient-graph builder requires at least 90% of lab rows to match `d_labitems` and at least one cohort lab result to map through LOINC to SNOMED. The model maps raw item IDs to KG nodes even when the lab token is `[UNK]`, and fuses KG vectors only into measurement code tokens (position `4*k+1`). Check `kg_diagnostics.lab_kg_coverage` and `max_dp_kg_removed` after training.
+
 **Check before training:**
 - `data/processed/$DS/manifest.json`: every leakage check `true`, and the cohort within 0.5% of the BigQuery cohort (38,364).
 - `processed_data/kg/full/coverage.json`: `all_usage_weighted` ≥ 0.85 (the demo gives 0.97).
@@ -91,7 +128,18 @@ python build_report.py --root predictions --out reports/summary.md
 
 ### Coming from the Colab notebook (`MIMIC_IV_Analysis.ipynb`)
 
-You don't need to extend the Colab notebook. `extraction/MIMIC_IV_Extraction.ipynb` is that notebook rebuilt: same cohort, same antihypertensive regex, same label. It adds timestamps, labs, vitals and leakage checks, and writes everything the rest of the pipeline needs. The one difference is the data source: it reads the PhysioNet CSV files, not BigQuery. To run it in Colab:
+Your original Colab `mimic_iv_analysis.py` builds the LAST-HTO cohort and label, but the exported sequence CSV lacks event times and lab item IDs. Run its cohort cell (`df_last_cohort`), then use the BigQuery companion to export the input tables. It creates a short-lived table of patient IDs and index times in your writable Google Cloud project; it deletes that table at the end. Run from the authenticated notebook after checking out this branch:
+
+```python
+%pip install -q google-cloud-bigquery pyarrow pandas numpy
+from extraction.export_from_bigquery import export_cohort
+export_cohort(client, df_last_cohort, "/content/hto_export",
+              scratch_dataset="hto-mimic.hto_extract")
+```
+
+Copy `/content/hto_export/{mimic_data,tables}` to `data/processed/mimic-iv-3.1/` on the HPC using approved storage. The export includes the final patient table, pre-index discharge diagnoses, medications, storetime labs, OMR/ICU vitals, `d_labitems.csv`, `icd_inventory.csv`, and stratified patient splits. The graph build still needs the SNOMED CT release, CMS GEMs, the separate MIT-LCP item-to-LOINC mapping, and the compatible LOINC Ontology RF2 extension. Keep MIMIC patient tables out of Git.
+
+If your source is the PhysioNet CSV archive, `extraction/MIMIC_IV_Extraction.ipynb` provides the equivalent local DuckDB extraction. To run it in Colab:
 
 ```python
 # Colab cell 1: code + packages
