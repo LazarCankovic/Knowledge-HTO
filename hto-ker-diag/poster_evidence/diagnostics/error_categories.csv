@@ -1,0 +1,17 @@
+model,category,count,test_n,threshold
+htr_former_ca,TN,2703,5754,0.5
+htr_former_ca,FP,1435,5754,0.5
+htr_former_ca,FN,589,5754,0.5
+htr_former_ca,TP,1027,5754,0.5
+htr_former_lab_kg,TN,3099,5754,0.5
+htr_former_lab_kg,FP,1039,5754,0.5
+htr_former_lab_kg,FN,740,5754,0.5
+htr_former_lab_kg,TP,876,5754,0.5
+htr_former_lab_kg_add_s42,TN,2556,5754,0.5
+htr_former_lab_kg_add_s42,FP,1582,5754,0.5
+htr_former_lab_kg_add_s42,FN,500,5754,0.5
+htr_former_lab_kg_add_s42,TP,1116,5754,0.5
+htr_former_kg,TN,2455,5754,0.5
+htr_former_kg,FP,1683,5754,0.5
+htr_former_kg,FN,500,5754,0.5
+htr_former_kg,TP,1116,5754,0.5

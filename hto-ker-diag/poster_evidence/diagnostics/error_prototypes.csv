@@ -1,0 +1,17 @@
+model,category,n,p25,median,p75,description
+htr_former_ca,TN,2703,0.25926393270492554,0.34487274289131165,0.42354920506477356,Aggregate probability profile; no individual case data
+htr_former_ca,FP,1435,0.5460820198059082,0.5993687510490417,0.6682595610618591,Aggregate probability profile; no individual case data
+htr_former_ca,FN,589,0.33868858218193054,0.4064251482486725,0.458180695772171,Aggregate probability profile; no individual case data
+htr_former_ca,TP,1027,0.5785863399505615,0.6431301832199097,0.7342596650123596,Aggregate probability profile; no individual case data
+htr_former_lab_kg,TN,3099,0.22736701369285583,0.3034440577030182,0.38034118711948395,Aggregate probability profile; no individual case data
+htr_former_lab_kg,FP,1039,0.552303284406662,0.6306440830230713,0.7225327491760254,Aggregate probability profile; no individual case data
+htr_former_lab_kg,FN,740,0.2888222113251686,0.3451146185398102,0.42372002452611923,Aggregate probability profile; no individual case data
+htr_former_lab_kg,TP,876,0.5852956771850586,0.6985411643981934,0.8295844942331314,Aggregate probability profile; no individual case data
+htr_former_lab_kg_add_s42,TN,2556,0.2447662353515625,0.32998596131801605,0.4145144745707512,Aggregate probability profile; no individual case data
+htr_former_lab_kg_add_s42,FP,1582,0.559535801410675,0.6265934109687805,0.71102274954319,Aggregate probability profile; no individual case data
+htr_former_lab_kg_add_s42,FN,500,0.309942401945591,0.3889952749013901,0.4465024620294571,Aggregate probability profile; no individual case data
+htr_former_lab_kg_add_s42,TP,1116,0.6081538796424866,0.6881051957607269,0.7985695004463196,Aggregate probability profile; no individual case data
+htr_former_kg,TN,2455,0.31619708240032196,0.39430713653564453,0.44267788529396057,Aggregate probability profile; no individual case data
+htr_former_kg,FP,1683,0.5385651290416718,0.5846132040023804,0.6572459936141968,Aggregate probability profile; no individual case data
+htr_former_kg,FN,500,0.3791147843003273,0.4245055466890335,0.4650624394416809,Aggregate probability profile; no individual case data
+htr_former_kg,TP,1116,0.5700692683458328,0.6443892121315002,0.7437097579240799,Aggregate probability profile; no individual case data

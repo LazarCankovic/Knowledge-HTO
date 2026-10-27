@@ -1,0 +1,7 @@
+model,baseline,metric,delta,ci_low,ci_high,n,resamples,seed,limitations
+htr_former_lab_kg,htr_former_ca,AUROC,-0.0023324332795774394,-0.010550136579079916,0.0058429776567411554,5754,2000,20261027,Descriptive CI; test was inspected during model iteration; training-seed uncertainty omitted
+htr_former_lab_kg,htr_former_ca,AUPRC,0.009458820603063578,-0.0021834879084718954,0.021572361422094486,5754,2000,20261027,Descriptive CI; test was inspected during model iteration; training-seed uncertainty omitted
+htr_former_lab_kg_add_s42,htr_former_ca,AUROC,0.009472846450908845,0.001888367069684324,0.016724096163074718,5754,2000,20261027,Descriptive CI; test was inspected during model iteration; training-seed uncertainty omitted
+htr_former_lab_kg_add_s42,htr_former_ca,AUPRC,0.015848092790617718,0.005494344509482912,0.026757167040347963,5754,2000,20261027,Descriptive CI; test was inspected during model iteration; training-seed uncertainty omitted
+htr_former_kg,htr_former_ca,AUROC,-0.0017618492455819812,-0.009532669349864412,0.006350770635856257,5754,2000,20261027,Descriptive CI; test was inspected during model iteration; training-seed uncertainty omitted
+htr_former_kg,htr_former_ca,AUPRC,0.008946456329988361,-0.001628419611984612,0.01972256692639871,5754,2000,20261027,Descriptive CI; test was inspected during model iteration; training-seed uncertainty omitted
