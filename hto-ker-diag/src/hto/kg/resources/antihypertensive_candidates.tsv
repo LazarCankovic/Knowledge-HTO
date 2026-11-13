@@ -1,0 +1,25 @@
+ingredient	drug_class	drugbank_id
+lisinopril	ACE inhibitor	DB00722
+enalapril	ACE inhibitor	DB00584
+benazepril	ACE inhibitor	DB00542
+captopril	ACE inhibitor	DB01197
+ramipril	ACE inhibitor	DB00178
+losartan	ARB	DB00678
+valsartan	ARB	DB00177
+irbesartan	ARB	DB01029
+candesartan	ARB	DB13919
+olmesartan	ARB	DB00275
+metoprolol	beta-blocker	DB00264
+carvedilol	beta-blocker	DB01136
+labetalol	beta-blocker	DB00598
+atenolol	beta-blocker	DB00335
+propranolol	beta-blocker	DB00571
+bisoprolol	beta-blocker	DB00612
+amlodipine	CCB	DB00381
+nifedipine	CCB	DB01115
+diltiazem	CCB	DB00343
+verapamil	CCB	DB00661
+felodipine	CCB	DB01023
+hydrochlorothiazide	thiazide	DB00999
+chlorthalidone	thiazide	DB00310
+indapamide	thiazide	DB00808

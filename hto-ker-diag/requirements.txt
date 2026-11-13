@@ -14,5 +14,8 @@ nbformat>=5.9
 nbclient>=0.9
 ipykernel>=6.25
 jupyter_client>=8.0
+# graph enrichment (1_extract_text_embeddings.py, 2_enrich_patient_graphs.py, 3_build_treatment_block.py)
+transformers>=4.40
+torch_geometric>=2.5
 # tests
 pytest>=7

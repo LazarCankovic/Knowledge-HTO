@@ -17,6 +17,8 @@ Output per patient (numpy arrays, local node indices):
   edge_index  [2, E] (src, dst) local indices
   edge_rel    [E] relation ids
   edge_tau    [E] days (float32)
+  edge_hops   [E] length of the shortest observed-code-to-observed-code path the edge lies on
+              (0 for an edge that is only part of one code's own 1-hop knowledge)
   code_index  {diag key -> local index} for the observed codes
 """
 from __future__ import annotations
@@ -139,10 +141,14 @@ def build_patient_graph(codes_times: dict[str, np.ndarray], g: GlobalGraphIndex,
 
     # 3. both directions, local indexing
     both: dict[tuple[int, int, int], float] = {}
+    hops: dict[tuple[int, int, int], int] = {}
     for (u, r, v), tau in edges.items():
+        h = path_len.get((u, r, v), 0) if (u, r, v) in path_edges else 0
         for key in ((u, r, v), (v, g.inverse[r], u)):
             if key not in both or tau < both[key]:
                 both[key] = tau
+            prev = hops.get(key, 0)
+            hops[key] = h if prev == 0 else (min(prev, h) if h else prev)
     nodes = sorted(set(ids) | {u for u, _, _ in both} | {v for _, _, v in both})
     local = {n: i for i, n in enumerate(nodes)}
     triples = sorted(both)
@@ -152,6 +158,7 @@ def build_patient_graph(codes_times: dict[str, np.ndarray], g: GlobalGraphIndex,
                                  dtype=np.int64).reshape(2, -1),
         "edge_rel": np.asarray([r for _, r, _ in triples], dtype=np.int64),
         "edge_tau": np.asarray([both[t] for t in triples], dtype=np.float32),
+        "edge_hops": np.asarray([hops[t] for t in triples], dtype=np.int16),
         "code_index": {k: local[g.key_to_id[k]] for k in keys},
         "n_pairs_connected": len(candidates),
         "n_cross_domain_pairs_connected": sum(g.kind[s] != g.kind[t] for s, t in candidates),

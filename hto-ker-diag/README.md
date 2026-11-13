@@ -241,6 +241,117 @@ add:             x = emb + kg                                                   
 - **LayerNorm on the attention inputs** (not in KerPrint). TransR embeddings reach the attention network at a tiny scale, so without it the scores barely differ across edges and the attention is uniform. That made τ's influence ~0.
 - **τ is scaled by 180 days,** as in the paper (the KerPrint code used 28).
 
+## 4. Graph enrichment: ClinicalBERT features and the PrimeKG treatment block
+
+Two separate structures, so drug knowledge does not dilute the time-aware diagnosis graph:
+- **g_y, the patient disease graph:** the SNOMED CT patient graph above, with ClinicalBERT node features.
+- **g_a, the candidate treatment block:** a 1-hop PrimeKG lookup for each patient and each of the 24 candidate antihypertensives in `src/hto/kg/resources/antihypertensive_candidates.tsv`.
+
+Extra inputs, all public: MONDO (`mondo.json`), PrimeKG (`kg.csv` and `disease_features.tab` from Harvard Dataverse, doi:10.7910/DVN/IXA7BM), the RxNorm full release (`rrf/`) and `emilyalsentzer/Bio_ClinicalBERT`. Install `transformers` and `torch_geometric` as well as `requirements.txt`.
+
+```bash
+# Stage 1: ICD -> MONDO -> PrimeKG, then ClinicalBERT text features   (GPU helps; --device auto)
+python 1_extract_text_embeddings.py --codes $P/tables/icd_inventory.csv --mondo mondo.json \
+  --primekg kg.csv --disease-features disease_features.tab --kg-dir processed_data/kg/full \
+  --snomed-dir $SNOMED --gems $GEMS
+# rebuild the patient graphs once: they now store edge_hops, which stage 2 needs
+python build_patient_graphs.py --dataset full_storetime --kg-tag full --mimic-dir $P/mimic_data
+# Stage 2: PyG patient graphs with node / edge features
+python 2_enrich_patient_graphs.py --dataset full_storetime --kg-tag full --mimic-dir $P/mimic_data
+# Stage 3: treatment context tensor
+python 3_build_treatment_block.py --dataset full_storetime --mimic-dir $P/mimic_data --rxnorm-dir rxnorm/rrf
+# hand-off checks: 0% leakage, >= 90% code coverage, < 20% empty context
+python eval_graph_enrichment.py --dataset full_storetime --kg-tag full --mimic-dir $P/mimic_data \
+  --codes $P/tables/icd_inventory.csv
+```
+
+On SLURM, `submit_HPC_jobs/run_graph_enrichment.sh` runs one stage per job (`STAGE=stage1|graphs|stage2|stage3|eval`).
+
+**Stage 1** (`src/hto/kg/disease_map.py`, `text_features.py`). MONDO links few ICD codes directly but about 9k SNOMED concepts, so each code takes the first route that reaches MONDO:
+1. its own ICD xref
+2. for ICD-9, its GEM targets
+3. its SNOMED concepts
+4. its nearest parent code
+5. its SNOMED IS-A ancestors (up to 3 levels)
+6. for a history or status concept, its SNOMED "Associated finding" (family-history concepts are skipped)
+
+A MONDO term that PrimeKG lacks resolves to its nearest MONDO parent in PrimeKG, up to 2 levels. Each text is `Disease: <ICD title> (<MONDO name>). Symptoms: <Mayo Clinic symptoms>`; a code without symptoms gets a definition instead. Unmapped codes keep their ICD title, so every observed code gets an embedding. SNOMED nodes are encoded from their names, and ICD category nodes use the mean of their codes. Embeddings use masked mean pooling. Outputs in `processed_data/kg/`:
+- `node_features_bert.pt`: `load_text_features()` gives `{key: 768-d tensor}`.
+- `icd_mondo_map.parquet`: the code → MONDO → PrimeKG map.
+- `icd_mondo_coverage.json`: aggregate coverage.
+
+**Stage 2** (`src/hto/kg/enrich.py`). Features:
+- Node: `x = [e_text (768) ‖ log1p(recency_days) ‖ log1p(frequency)]`, which is 770-d.
+- Edge: `edge_attr = [sin/cos of τ at 8 periods from 1 day to 10 years (16) ‖ edge_hops / 4]`, which is 17-d. `edge_hops` is the length of the shortest observed-code-to-observed-code path the edge lies on, and 0 for an edge that belongs only to one code's own 1-hop knowledge.
+- Recency and frequency use only diagnoses strictly before t0. A graph code seen only at t0 stays a plain node (`observed_mask = False`).
+
+Storing x for every node of every patient would take tens of GB, so `patient_graphs_enriched.<kg>.pt` keeps compact PyG `Data` objects (global node ids, τ, hops, recency, frequency) plus one text table. `EnrichedPatientGraphs(path)[i]` returns the full `x` and `edge_attr`.
+
+**Stage 3** (`src/hto/kg/treatment.py`). Inputs and matching:
+- `V_p`: the PrimeKG disease nodes of the patient's diagnoses before t0.
+- `M_active`: the DrugBank ingredients of prescriptions started in the 30 days before t0. Medications map through RxNorm: the NDC first, then the name, then to ingredients and their DrugBank ids.
+- For each candidate T, the block intersects T's contraindication, indication and off-label edges with `V_p`, and its `drug_drug` edges with `M_active` (excluding T itself).
+
+`treatment_context.pt` holds:
+- `features [P, 24, 16]`, with names in `feature_names`
+- `is_index_candidate [P, 24]`
+- `patient_ids`
+- `candidates`
+
+`treatment_context_matches.parquet` lists every match with its evidence time. PrimeKG DDIs carry no severity, so they count as unrated unless `--severity` provides a `drug_a, drug_b, level` table.
+
+**Full cohort** (`full_storetime`, `kg.csv`). Results:
+- Temporal leakage is 0% in both g_y and g_a. Graph features are 770 / 17-d.
+- 88.96% of diagnosis rows map to MONDO and have an embedding; every observed code has an embedding. This misses the 90% target. Excluding the supplementary V–Z / E codes (20% of rows), coverage is 97.07%. Most remaining unmapped rows are status, encounter or external-cause codes, or symptoms and abnormal findings, which MONDO does not model as diseases.
+- The empty-context rate is 4.33% (4.46% for index pairs). 93.85% of medication rows map to DrugBank.
+
+### Labs, vitals and symptoms: the context graph (`KG_TAG=ctx`)
+
+The context KG adds measurements and symptoms to the team's diagnosis + lab SNOMED graph (`processed_data/kg/lab_snomed`, kept verbatim). Extra public input: HPO (`hp.json`, https://hpo.jax.org).
+
+```bash
+python build_context_kg.py --base-kg-dir processed_data/kg/lab_snomed \
+  --icd-snomed-map processed_data/kg/full/icd_snomed_map.parquet --codes $P/tables/icd_inventory.csv \
+  --labitems $P/tables/d_labitems.csv --hpo hp.json --primekg kg.csv --mondo mondo.json
+python 1_extract_text_embeddings.py ... --kg-dir processed_data/kg/ctx     # texts for the new nodes too
+python build_context_patient_graphs.py --dataset full_storetime --kg-tag ctx --mimic-dir $P/mimic_data
+python 2_enrich_patient_graphs.py --dataset full_storetime --kg-tag ctx --mimic-dir $P/mimic_data
+python 3_build_treatment_block.py --dataset full_storetime --mimic-dir $P/mimic_data --rxnorm-dir rxnorm/rrf
+python eval_graph_enrichment.py --dataset full_storetime --kg-tag ctx --mimic-dir $P/mimic_data \
+  --codes $P/tables/icd_inventory.csv
+```
+
+SLURM: `STAGE=ctxkg`, then `stage1` / `ctxgraphs` / `stage2` / `eval` with `KG_TAG=ctx`, then `stage3`, which picks the context up by itself.
+
+**Measurements.** `src/hto/kg/resources/measurement_panel.tsv` holds 31 measurements: 26 labs (electrolytes, kidney, glucose / HbA1c, blood count, liver, lipids, TSH, NT-proBNP, urine albumin and protein ratios) and 5 vitals (systolic and diastolic BP from OMR and ICU, BMI, weight, height). The vitals table has no heart rate. Each measurement has optional low / high thresholds. A value outside them is an abnormal result with a state, `low` or `high`, and each state names the HPO phenotype and the PrimeKG disease it indicates. Names are resolved at build time, never guessed, and unresolved ones are listed in `graph_stats.json`.
+
+**New nodes and edges** (each relation also gets its inverse):
+
+| Node | Example | Edges |
+|---|---|---|
+| measure | `meas:potassium` | `measure_maps_to_snomed` → the SNOMED concepts its lab items map to (LOINC) |
+| abnormal result | `meas:potassium:high` | `state_of` → measure; `indicates` → HPO phenotype |
+| phenotype (HPO) | `HP:0002153` Hyperkalemia | `phenotype_is_a` → HPO parent |
+| diagnosis (existing) | `10_E875` | `manifests_as` → its own symptom; `has_phenotype` → phenotypes of its PrimeKG disease |
+
+`manifests_as` comes from the code's core SNOMED finding / disorder concept, or else its ICD title, matched exactly to HPO labels and exact synonyms. Current HPO releases no longer carry SNOMED xrefs. The core concept is the one named most like the ICD title, with a token Jaccard of at least 0.5. The ICD → SNOMED map is many-to-one, so without this rule `I10` picked up every concept that rolls up into it, e.g. "Hypertensive crisis". `has_phenotype` uses PrimeKG `disease_phenotype_positive`, at most 10 per code: phenotypes that an abnormal result or a symptom code can reach come first, then the most specific ones. An abnormal result and a diagnosis therefore meet at a shared phenotype, and the patient graph builder links them with the usual τ.
+
+**Patient graphs.** The observed codes are the diagnoses plus `meas:<m>` for every measurement and `meas:<m>:<state>` for every abnormal one. Measurements are used only when strictly before t0. `x` stays 770-d and `edge_attr` 17-d. Stage 2 adds `value_attr [n, 4] = [has_value, z(last value), z(last − previous value), abnormal −1 / 0 / +1]` for measurement nodes, which is 0 elsewhere. z uses a robust median / IQR scale fitted on training patients' pre-t0 values, stored in `value_scale`.
+
+**Treatment block.** The extra features, appended after the original 16:
+- `side_effect_overlap_flag` and `matched_side_effect_count`: the candidate's PrimeKG `drug_effect` phenotypes ∩ the patient's symptoms before t0. Symptoms come from symptom codes and from current abnormal results.
+- `measurement_contraindication_flag`, `matched_measurement_contraindication_count` and `measurement_indication_count`: the candidate's contraindications / indications ∩ the diseases indicated by current abnormal results. "Current" means the last value within 365 days before t0 is abnormal.
+- `n_patient_phenotypes` and `n_abnormal_measurements`.
+
+`treatment_context.pt` also gets `measurements [P, 31, 4]`, the same four value features per panel measurement, with `measurement_names`. Matches carry `evidence_source` (diagnosis / medication / symptom / measurement). The original empty-context rate keeps its definition; the rate that also counts side effects and measurement matches is reported next to it.
+
+**Full cohort, context graph** (`graph_enrichment_eval.ctx.json`):
+- **Context KG:** 99,848 entities, 76 relations, 812,814 triples. It adds 31 measures, 41 abnormal-result states (all resolved to HPO) and 3,379 HPO phenotypes. 1,063 ICD codes have `manifests_as` (21.8% of diagnosis rows, 49.1% of symptom-chapter rows), and 3,860 have `has_phenotype`.
+- **Patient graphs:** 19.6M pre-t0 panel measurements over 38,311 patients. The observed codes are 775k diagnosis, 850k measurement and 431k abnormal-result codes. Every patient has measurement nodes and 99.2% have phenotype nodes. Median per patient: 22 measures, 32 abnormal-result nodes, 38 phenotype nodes. 37,813 patients have a lab–diagnosis path.
+- **Leakage:** 0% in both g_y and g_a, measurements included. Dimensions are x 770, edge_attr 17, value_attr 4, all finite.
+- **Treatment block:** the empty-context rate is 4.33% (original definition) and 2.06% counting side effects and measurement matches. 34.5k patients have symptoms before t0, and 34.3k have a current abnormal result that indicates a PrimeKG disease. Measurement coverage ranges from 99% (basic metabolic panel, blood count) through 89% (BP) and 51–58% (lipids, HbA1c) down to 9% (eGFR, which is rarely reported in MIMIC; creatinine covers 99%).
+- **Diagnosis-code coverage is unchanged:** 88.96%, or 97.07% on disease codes.
+
 ## Reading the results
 
 Each `htr_former_kg` run writes `kg_diagnostics` into `metrics.json`. Read it before comparing AUCs:
@@ -286,6 +397,10 @@ extraction/                 MIMIC-IV → data/processed/<dataset>/  (notebook + 
 build_data.py               data/processed/... → processed_data/<tag>/ (all hto-past variants)
 build_kg.py                 ICD → SNOMED map, global graph, TransR → processed_data/kg/<kg>/
 build_patient_graphs.py     per-patient time-aware graphs
+build_context_kg.py         + labs / vitals / HPO symptoms → processed_data/kg/ctx/
+build_context_patient_graphs.py  per-patient graphs on the context KG (diagnoses + pre-t0 measurements)
+1_extract_text_embeddings.py, 2_enrich_patient_graphs.py, 3_build_treatment_block.py, eval_graph_enrichment.py
+                            graph enrichment (section 4)
 run.py                      train + evaluate one model (val-based checkpointing; test set used once)
 cv_compare.py               paired k-fold comparison for small cohorts
 build_report.py             aggregate predictions/ into reports/
