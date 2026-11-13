@@ -1,0 +1,32 @@
+measure	source	keys	fluid	unit	low	high	low_phenotype	high_phenotype	low_disease	high_disease	display
+potassium	lab	Potassium|Potassium, Whole Blood	Blood	mEq/L	3.5	5.0	Hypokalemia	Hyperkalemia	hypokalemia	hyperkalemia	Potassium
+sodium	lab	Sodium|Sodium, Whole Blood	Blood	mEq/L	135	145	Hyponatremia	Hypernatremia	hyponatremia	hypernatremia	Sodium
+creatinine	lab	Creatinine	Blood	mg/dL		1.3		Elevated circulating creatinine concentration|Elevated serum creatinine			Creatinine
+egfr	lab	Estimated GFR (CKD- EPI Refit)|Estimated GFR (CKD- EPI 2021)	Blood	mL/min/1.73m2	60		Decreased glomerular filtration rate		chronic kidney disease		Estimated GFR
+bun	lab	Urea Nitrogen	Blood	mg/dL		25		Elevated blood urea nitrogen|Increased blood urea nitrogen			Blood urea nitrogen
+glucose	lab	Glucose	Blood	mg/dL	70	200	Hypoglycemia	Hyperglycemia	hypoglycemia		Glucose
+hba1c	lab	% Hemoglobin A1c	Blood	%		6.5		Elevated hemoglobin A1c|Increased hemoglobin A1c		diabetes mellitus	Hemoglobin A1c
+hemoglobin	lab	Hemoglobin	Blood	g/dL	12.0		Anemia		anemia (disease)|anemia		Hemoglobin
+platelets	lab	Platelet Count	Blood	K/uL	150	450	Thrombocytopenia	Thrombocytosis	thrombocytopenia	thrombocytosis	Platelet count
+wbc	lab	White Blood Cells	Blood	K/uL	4.0	11.0	Leukopenia	Leukocytosis	leukopenia		White blood cells
+calcium	lab	Calcium, Total	Blood	mg/dL	8.4	10.5	Hypocalcemia	Hypercalcemia	hypocalcemia	hypercalcemia	Calcium
+magnesium	lab	Magnesium	Blood	mg/dL	1.6	2.6	Hypomagnesemia	Hypermagnesemia	hypomagnesemia	hypermagnesemia	Magnesium
+bicarbonate	lab	Bicarbonate	Blood	mEq/L	22	32	Metabolic acidosis	Metabolic alkalosis	metabolic acidosis|acidosis	metabolic alkalosis|alkalosis	Bicarbonate
+alt	lab	Alanine Aminotransferase (ALT)	Blood	IU/L		120		Elevated circulating alanine aminotransferase concentration|Elevated serum alanine aminotransferase|Elevated hepatic transaminase			ALT
+ast	lab	Asparate Aminotransferase (AST)	Blood	IU/L		120		Elevated circulating aspartate aminotransferase concentration|Elevated serum aspartate aminotransferase|Elevated hepatic transaminase			AST
+bilirubin	lab	Bilirubin, Total	Blood	mg/dL		1.5		Hyperbilirubinemia			Total bilirubin
+albumin	lab	Albumin	Blood	g/dL	3.5		Hypoalbuminemia				Albumin
+uric_acid	lab	Uric Acid	Blood	mg/dL		7.0		Hyperuricemia		hyperuricemia	Uric acid
+cholesterol	lab	Cholesterol, Total	Blood	mg/dL		240		Hypercholesterolemia		hypercholesterolemia	Total cholesterol
+ldl	lab	Cholesterol, LDL, Calculated|Cholesterol, LDL, Measured	Blood	mg/dL		160		Elevated circulating LDL-C concentration|Increased LDL cholesterol concentration			LDL cholesterol
+hdl	lab	Cholesterol, HDL	Blood	mg/dL	40		Decreased circulating HDL-C concentration|Decreased HDL cholesterol concentration				HDL cholesterol
+triglycerides	lab	Triglycerides	Blood	mg/dL		200		Hypertriglyceridemia		hypertriglyceridemia	Triglycerides
+tsh	lab	Thyroid Stimulating Hormone	Blood	uIU/mL	0.1	10	Hyperthyroidism	Hypothyroidism	hyperthyroidism	hypothyroidism	TSH
+ntprobnp	lab	NTproBNP	Blood	pg/mL		1800		Congestive heart failure|Heart failure		heart failure	NT-proBNP
+uacr	lab	Albumin/Creatinine, Urine	Urine	mg/g		30		Albuminuria|Microalbuminuria			Urine albumin/creatinine ratio
+upcr	lab	Protein/Creatinine Ratio	Urine	mg/mg		0.5		Proteinuria			Urine protein/creatinine ratio
+sbp	vital	bps		mmHg	90	140	Hypotension	Hypertension	hypotension	hypertensive disorder|hypertension	Systolic blood pressure
+dbp	vital	bpd		mmHg	60	90	Hypotension	Hypertension	hypotension	hypertensive disorder|hypertension	Diastolic blood pressure
+bmi	vital	bmi		kg/m2	18.5	30	Decreased body mass index|Underweight	Obesity		obesity disorder|obesity	Body mass index
+weight	vital	weight_lbs		lb							Body weight
+height	vital	height_in		in							Body height
